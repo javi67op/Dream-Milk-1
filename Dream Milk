@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>DREAM MILK – सपनों का दूध</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+:root{
+  --primary:#1f7ae0;
+  --bg:#f4f7fb;
+  --card:#ffffff;
+  --text:#1e293b;
+  --muted:#64748b;
+  --danger:#e11d48;
+  --border:#e2e8f0;
+}
+*{box-sizing:border-box}
+body{
+  margin:0;
+  font-family: "Segoe UI", Roboto, Arial, sans-serif;
+  background:var(--bg);
+  color:var(--text);
+}
+header{
+  background:linear-gradient(135deg,#1f7ae0,#3aa0ff);
+  color:#fff;
+  padding:16px;
+  text-align:center;
+}
+header h1{ margin:0; font-size:22px; }
+header small{ opacity:.9; }
+
+.container{ max-width:1000px; margin:auto; padding:15px; }
+
+.card{
+  background:var(--card);
+  border-radius:12px;
+  padding:16px;
+  margin-bottom:16px;
+  box-shadow:0 6px 18px rgba(0,0,0,.06);
+}
+.card h3{ margin:0 0 12px; font-size:16px; color:#0f172a; }
+
+.grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:10px; }
+
+input,button{
+  width:100%;
+  padding:10px 12px;
+  border-radius:8px;
+  border:1px solid var(--border);
+  font-size:14px;
+}
+input:focus{ outline:none; border-color:var(--primary); }
+button{ background:var(--primary); color:#fff; border:none; cursor:pointer; font-weight:500; }
+button:hover{ opacity:.95; }
+button.danger{ background:var(--danger); }
+
+.table-wrap{ overflow-x:auto; }
+table{ width:100%; border-collapse:collapse; font-size:14px; }
+th,td{ padding:10px; border-bottom:1px solid var(--border); text-align:center; }
+th{ background:#f8fafc; color:#334155; }
+
+.footer-actions{ display:flex; gap:10px; margin-top:10px; flex-wrap:wrap; }
+.badge{ background:#eef4ff; color:#1f7ae0; padding:4px 8px; border-radius:20px; font-size:12px; }
+
+@media(max-width:600px){
+  header h1{font-size:18px}
+}
+</style>
+</head>
+
+<body>
+<header>
+  <h1>🥛 DREAM MILK</h1>
+  <small>सपनों का दूध • Smart Dairy Management</small>
+</header>
+
+<div class="container">
+
+<!-- ADD FARMER -->
+<div class="card">
+  <h3>Add Farmer <span class="badge">बंदा जोड़ें</span></h3>
+  <div class="grid">
+    <input id="fName" placeholder="Farmer Name (नाम)">
+    <input id="fCode" placeholder="Code Number (कोड)">
+  </div>
+  <div style="margin-top:10px">
+    <button onclick="addFarmer()">Save Farmer</button>
+  </div>
+</div>
+
+<!-- MILK ENTRY -->
+<div class="card">
+  <h3>Milk Entry <span class="badge">दूध एंट्री</span></h3>
+  <div class="grid">
+    <input id="eCode" placeholder="Farmer Code (कोड)">
+    <input type="number" id="eLitre" placeholder="Milk Litre (लीटर)">
+    <input type="number" step="0.1" id="eFat" placeholder="Fat % (फैट)">
+    <input type="number" id="eRate" placeholder="Rate per Fat (रेट)">
+  </div>
+  <div style="margin-top:10px">
+    <button onclick="addEntry()">Save Milk Entry</button>
+  </div>
+</div>
+
+<!-- FARMER LIST -->
+<div class="card">
+  <h3>Farmers & Total Bill <span class="badge">स्टोरेज</span></h3>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Select</th>
+          <th>Farmer Name</th>
+          <th>Code</th>
+          <th>Total ₹</th>
+          <th>Delete</th>
+        </tr>
+      </thead>
+      <tbody id="farmerTable"></tbody>
+    </table>
+  </div>
+
+  <div class="footer-actions">
+    <button class="danger" onclick="deleteSelected()">Delete Selected Farmers</button>
+    <button onclick="cleanupOld()">Cleanup Old Entries</button>
+  </div>
+</div>
+
+</div>
+
+<script>
+// Notification permission
+if("Notification" in window && Notification.permission!=="granted"){
+  Notification.requestPermission();
+}
+
+function notify(msg){
+  if(Notification.permission==="granted"){
+    new Notification("DREAM MILK",{body:msg});
+  }
+}
+
+// Storage
+let farmers=JSON.parse(localStorage.getItem("farmers"))||[];
+let entries=JSON.parse(localStorage.getItem("entries"))||[];
+
+// Add Farmer
+function addFarmer(){
+  let name=fName.value.trim();
+  let code=fCode.value.trim();
+  if(!name||!code)return alert("Please fill all fields");
+  farmers.push({name,code});
+  localStorage.setItem("farmers",JSON.stringify(farmers));
+  fName.value=fCode.value="";
+  render();
+}
+
+// Add Entry
+function addEntry(){
+  let code=eCode.value.trim();
+  let litre=+eLitre.value;
+  let fat=+eFat.value;
+  let rate=+eRate.value;
+  if(!code||!litre||!fat||!rate)return alert("Please fill all fields");
+  let amount=litre*fat*rate;
+  entries.push({code,litre,amount,date:new Date().toISOString()});
+  localStorage.setItem("entries",JSON.stringify(entries));
+
+  let farmer=farmers.find(f=>f.code===code);
+  notify(
+`Milk gone to: ${farmer?farmer.name:"Farmer"}
+Quantity: ${litre} L
+Total Cost: ₹${amount.toFixed(2)}`
+  );
+  eLitre.value=eFat.value=eRate.value="";
+  render();
+}
+
+// Total Bill
+function totalBill(code){
+  return entries.filter(e=>e.code===code)
+  .reduce((s,e)=>s+e.amount,0);
+}
+
+// Delete Farmer
+function deleteFarmer(code){
+  if(!confirm("Delete this farmer and all records?")) return;
+  farmers=farmers.filter(f=>f.code!==code);
+  entries=entries.filter(e=>e.code!==code);
+  localStorage.setItem("farmers",JSON.stringify(farmers));
+  localStorage.setItem("entries",JSON.stringify(entries));
+  notify("Farmer and all milk records deleted");
+  render();
+}
+
+// Delete Selected
+function deleteSelected(){
+  document.querySelectorAll(".chk:checked").forEach(c=>{
+    deleteFarmer(c.value);
+  });
+}
+
+// Cleanup old entries (>6 months)
+function cleanupOld(){
+  let cutoff=new Date();
+  cutoff.setMonth(cutoff.getMonth()-6);
+  entries=entries.filter(e=>new Date(e.date)>=cutoff);
+  localStorage.setItem("entries",JSON.stringify(entries));
+  alert("Old entries (>6 months) cleaned up");
+  render();
+}
+
+// Render Table
+function render(){
+  farmerTable.innerHTML="";
+  farmers.forEach(f=>{
+    farmerTable.innerHTML+=`
+<tr>
+<td><input type="checkbox" class="chk" value="${f.code}"></td>
+<td>${f.name}</td>
+<td>${f.code}</td>
+<td>₹ ${totalBill(f.code).toFixed(2)}</td>
+<td><button class="danger" onclick="deleteFarmer('${f.code}')">Delete</button></td>
+</tr>`;
+  });
+}
+
+render();
+</script>
+
+</body>
+</html>
