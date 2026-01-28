@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Dream Milk</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+body{font-family:Arial;margin:0;background:#f2f4f7}
+header{background:#1e88e5;color:#fff;padding:14px;text-align:center;font-size:20px}
+nav{display:flex;background:#fff}
+nav button{flex:1;padding:12px;border:none;background:none;font-size:16px}
+nav button.active{border-bottom:3px solid #1e88e5;font-weight:bold}
+.sub{display:flex;margin:8px}
+.sub button{flex:1;margin:4px;padding:8px;border:none;border-radius:5px}
+.sub .active{background:#1e88e5;color:#fff}
+.card{background:#fff;margin:10px;padding:12px;border-radius:8px}
+input,select{width:100%;padding:7px;margin:5px 0}
+.btn{padding:8px;border:none;border-radius:5px;width:100%;margin-top:5px}
+.save{background:#1e88e5;color:#fff}
+.print{background:green;color:#fff}
+.del{background:#e53935;color:#fff}
+.hidden{display:none}
+.bill{border:1px dashed #000;padding:8px;margin-top:6px}
+@media print{
+ body *{visibility:hidden}
+ .print-area,.print-area *{visibility:visible}
+ .print-area{position:absolute;top:0;left:0;width:100%}
+}
+</style>
+</head>
+
+<body>
+<header>🥛 Dream Milk</header>
+
+<nav>
+<button class="active" onclick="mainTab('client')">Client</button>
+<button onclick="mainTab('farmer')">Farmer</button>
+</nav>
+
+<!-- CLIENT -->
+<div id="client">
+<div class="sub">
+<button class="active" onclick="subTab('client','main')">Main Page</button>
+<button onclick="subTab('client','bill')">Bill Page</button>
+</div>
+
+<div id="client_main" class="card">
+<h3>Add Client</h3>
+<input id="cname" placeholder="Client Name">
+<input id="cmobile" placeholder="Mobile">
+<input id="ccode" placeholder="Unique Code">
+<button class="btn save" onclick="addClient()">Save Client</button>
+</div>
+
+<div class="card">
+<h3>Client Entry</h3>
+<input id="c_code_entry" placeholder="Client Code" oninput="autoClient()">
+<input id="c_name_show" placeholder="Client Name" disabled>
+<select id="c_milk"><option>Cow</option><option>Buffalo</option><option>Mix</option></select>
+<input id="c_fat" type="number" placeholder="Fat %">
+<input id="c_rate" type="number" placeholder="Fat Rate ₹">
+<input id="c_liter" type="number" placeholder="Liters">
+<button class="btn save" onclick="saveClientEntry()">Save Entry</button>
+</div>
+
+<div class="card">
+<h3>Client Entries (Draft)</h3>
+<div id="client_entries"></div>
+</div>
+
+<div id="client_bill" class="card hidden">
+<h3>Client Bills</h3>
+<div id="client_bills"></div>
+</div>
+</div>
+
+<!-- FARMER -->
+<div id="farmer" class="hidden">
+<div class="sub">
+<button class="active" onclick="subTab('farmer','main')">Main Page</button>
+<button onclick="subTab('farmer','bill')">Bill Page</button>
+</div>
+
+<div id="farmer_main" class="card">
+<h3>Add Farmer</h3>
+<input id="fname" placeholder="Farmer Name">
+<input id="fmobile" placeholder="Mobile">
+<input id="fcode" placeholder="Unique Code">
+<button class="btn save" onclick="addFarmer()">Save Farmer</button>
+</div>
+
+<div class="card">
+<h3>Farmer Entry</h3>
+<input id="f_code_entry" placeholder="Farmer Code" oninput="autoFarmer()">
+<input id="f_name_show" placeholder="Farmer Name" disabled>
+<select id="f_milk"><option>Cow</option><option>Buffalo</option><option>Mix</option></select>
+<input id="f_fat" type="number" placeholder="Fat %">
+<input id="f_rate" type="number" placeholder="Fat Rate ₹">
+<input id="f_liter" type="number" placeholder="Liters">
+<button class="btn save" onclick="saveFarmerEntry()">Save Entry</button>
+</div>
+
+<div class="card">
+<h3>Farmer Entries (Draft)</h3>
+<div id="farmer_entries"></div>
+</div>
+
+<div id="farmer_bill" class="card hidden">
+<h3>Farmer Bills</h3>
+<div id="farmer_bills"></div>
+</div>
+</div>
+
+<script>
+function g(k){return JSON.parse(localStorage[k]||'[]')}
+function s(k,v){localStorage[k]=JSON.stringify(v)}
+
+function mainTab(t){
+ client.classList.add('hidden'); farmer.classList.add('hidden');
+ document.getElementById(t).classList.remove('hidden');
+}
+function subTab(t,p){
+ document.getElementById(t+'_main').classList.toggle('hidden',p!='main');
+ document.getElementById(t+'_bill').classList.toggle('hidden',p!='bill');
+}
+
+function addClient(){let a=g('clients');a.push({name:cname.value,mobile:cmobile.value,code:ccode.value});s('clients',a);alert('Client Added')}
+function addFarmer(){let a=g('farmers');a.push({name:fname.value,mobile:fmobile.value,code:fcode.value});s('farmers',a);alert('Farmer Added')}
+
+function autoClient(){let c=g('clients').find(x=>x.code==c_code_entry.value);c_name_show.value=c?c.name:''}
+function autoFarmer(){let f=g('farmers').find(x=>x.code==f_code_entry.value);f_name_show.value=f?f.name:''}
+
+function saveClientEntry(){
+ let t=c_fat.value*c_rate.value*c_liter.value;
+ let a=g('client_entries');
+ a.push({code:c_code_entry.value,name:c_name_show.value,milk:c_milk.value,fat:c_fat.value,rate:c_rate.value,liter:c_liter.value,total:t});
+ s('client_entries',a);renderClient();
+}
+
+function saveFarmerEntry(){
+ let t=f_fat.value*f_rate.value*f_liter.value;
+ let a=g('farmer_entries');
+ a.push({code:f_code_entry.value,name:f_name_show.value,milk:f_milk.value,fat:f_fat.value,rate:f_rate.value,liter:f_liter.value,total:t});
+ s('farmer_entries',a);renderFarmer();
+}
+
+function renderClient(){
+ let e=g('client_entries'), b=g('client_bills');
+ client_entries.innerHTML='';
+ e.forEach((x,i)=>{
+ client_entries.innerHTML+=`
+ <div class="bill">
+ ${x.name} | ₹${x.total}
+ <button class="btn print" onclick="printClient(${i})">Print</button>
+ <button class="btn del" onclick="delClientEntry(${i})">Delete</button>
+ </div>`;
+ });
+ client_bills.innerHTML='';
+ b.forEach(x=>{
+ client_bills.innerHTML+=`
+ <div class="bill print-area">
+ ${x.name}<br>Milk:${x.milk}<br>Fat:${x.fat}%<br>₹${x.total}
+ </div>`;
+ });
+}
+
+function renderFarmer(){
+ let e=g('farmer_entries'), b=g('farmer_bills');
+ farmer_entries.innerHTML='';
+ e.forEach((x,i)=>{
+ farmer_entries.innerHTML+=`
+ <div class="bill">
+ ${x.name} | ₹${x.total}
+ <button class="btn print" onclick="printFarmer(${i})">Print</button>
+ <button class="btn del" onclick="delFarmerEntry(${i})">Delete</button>
+ </div>`;
+ });
+ farmer_bills.innerHTML='';
+ b.forEach(x=>{
+ farmer_bills.innerHTML+=`
+ <div class="bill print-area">
+ ${x.name}<br>Milk:${x.milk}<br>Fat:${x.fat}%<br>₹${x.total}
+ </div>`;
+ });
+}
+
+function printClient(i){
+ let e=g('client_entries'), b=g('client_bills');
+ b.push(e[i]); e.splice(i,1);
+ s('client_entries',e); s('client_bills',b);
+ renderClient(); window.print();
+}
+function printFarmer(i){
+ let e=g('farmer_entries'), b=g('farmer_bills');
+ b.push(e[i]); e.splice(i,1);
+ s('farmer_entries',e); s('farmer_bills',b);
+ renderFarmer(); window.print();
+}
+function delClientEntry(i){let a=g('client_entries');a.splice(i,1);s('client_entries',a);renderClient()}
+function delFarmerEntry(i){let a=g('farmer_entries');a.splice(i,1);s('farmer_entries',a);renderFarmer()}
+
+renderClient(); renderFarmer();
+</script>
+</body>
+</html>
